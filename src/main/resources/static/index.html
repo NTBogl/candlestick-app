@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Candlestick Chart</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-chart-financial"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client/dist/sockjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/stompjs/lib/stomp.min.js"></script>
+</head>
+<body>
+<h2 style="text-align:center;">📈 Candlestick Chart (Live)</h2>
+<canvas id="candlestickChart" height="100"></canvas>
+
+<script>
+    const ctx = document.getElementById('candlestickChart').getContext('2d');
+
+    const data = {
+        labels: [],
+        datasets: [{
+            label: 'Price',
+            data: [],
+            borderColor: 'green',
+            borderWidth: 2
+        }]
+    };
+
+    const chart = new Chart(ctx, {
+        type: 'line',
+        data: data,
+        options: {
+            animation: false,
+            scales: {
+                x: { title: { display: true, text: 'Time' } },
+                y: { title: { display: true, text: 'Price' } }
+            }
+        }
+    });
+
+    const socket = new SockJS('/ws');
+    const stompClient = Stomp.over(socket);
+    stompClient.connect({}, () => {
+        stompClient.subscribe('/topic/candles', (message) => {
+            const candle = JSON.parse(message.body);
+            data.labels.push(candle.timestamp);
+            data.datasets[0].data.push(candle.close);
+            chart.update();
+        });
+    });
+</script>
+</body>
+</html>
